@@ -1,36 +1,48 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
+import type FunnelerApiPlugin from "./main";
 
-export interface MyPluginSettings {
-	mySetting: string;
+export interface FunnelerApiSettings {
+	apiToken: string;
 }
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+export const DEFAULT_SETTINGS: FunnelerApiSettings = {
+	apiToken: "",
+};
+
+export const PRODUCTION_URL = "https://api.funnelerapp.com";
+export const DEVELOPMENT_URL = "http://api.lvh.me:3002";
+
+declare const IS_PRODUCTION: boolean;
+
+export function getHostUrl(): string {
+	if (IS_PRODUCTION) {
+		return PRODUCTION_URL;
+	}
+	return DEVELOPMENT_URL;
 }
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+export class FunnelerApiSettingTab extends PluginSettingTab {
+	plugin: FunnelerApiPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: FunnelerApiPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
 	display(): void {
-		const {containerEl} = this;
+		this.containerEl.empty();
 
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+		new Setting(this.containerEl)
+			.setName("API token")
+			.setDesc("Bearer token for the broadcast mail API")
+			.addText((text) => {
+				text.inputEl.type = "password";
+				text.setPlaceholder("トークンを入力")
+					.setValue(this.plugin.settings.apiToken)
+					.onChange(async (value: string) => {
+						this.plugin.settings.apiToken = value;
+						await this.plugin.saveSettings();
+					});
+			});
 	}
 }
