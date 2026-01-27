@@ -1,99 +1,102 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import {MarkdownView, Notice, Plugin} from "obsidian";
+import {DEFAULT_SETTINGS, FunnelerApiSettingTab} from "./settings";
+import type {FunnelerApiSettings} from "./settings";
+import type {BroadcastFrontmatter} from "./types";
+import {parseImageReferences} from "./utils/image-parser";
+import {resolveImages} from "./utils/image-resolver";
+import {sendBroadcastMail} from "./api/client";
 
-// Remember to rename these classes and interfaces!
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class FunnelerApiPlugin extends Plugin {
+	settings: FunnelerApiSettings;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
+			id: "send-as-broadcast-mail",
+			name: "Send current note as broadcast mail",
 			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (!view) return false;
+				if (!checking) {
+					void this.sendCurrentNote(view);
 				}
-				return false;
-			}
+				return true;
+			},
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
-	}
-
-	onunload() {
+		this.addSettingTab(new FunnelerApiSettingTab(this.app, this));
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<FunnelerApiSettings>);
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-}
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+	private async sendCurrentNote(view: MarkdownView) {
+		if (!this.settings.apiToken) {
+			new Notice("APIトークンが設定されていません。設定画面で入力してください。");
+			return;
+		}
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+		const file = view.file;
+		if (!file) {
+			new Notice("アクティブなファイルがありません。");
+			return;
+		}
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+		try {
+			const cache = this.app.metadataCache.getFileCache(file);
+			const fm = (cache?.frontmatter ?? {}) as BroadcastFrontmatter;
+
+			const missing: string[] = [];
+			if (!fm.subject) missing.push("subject");
+			if (!fm.tenant_email_id) missing.push("tenant_email_id");
+			if (!fm.scheduled_at) missing.push("scheduled_at");
+			if (!fm.status) missing.push("status");
+			if (missing.length > 0) {
+				new Notice(`frontmatter に必須項目がありません: ${missing.join(", ")}`);
+				return;
+			}
+			if (fm.status !== "draft" && fm.status !== "send") {
+				new Notice('Status must be "draft" or "send"');
+				return;
+			}
+
+			new Notice("Sending broadcast mail...");
+
+			const content = await this.app.vault.read(file);
+
+			const imageRefs = parseImageReferences(content);
+			const resolvedImages = await resolveImages(this.app, imageRefs, file.path);
+
+			if (resolvedImages.length < imageRefs.length) {
+				const missingFiles = imageRefs
+					.filter(ref => !resolvedImages.some(r => r.filename === ref.filename))
+					.map(ref => ref.filename);
+				for (const name of missingFiles) {
+					new Notice(`画像が見つかりません: ${name}`);
+				}
+				return;
+			}
+
+			const result = await sendBroadcastMail({
+				content,
+				images: resolvedImages,
+				settings: this.settings,
+				frontmatter: fm,
+			});
+
+			new Notice(`BroadcastMail 下書きを作成しました (ID: ${result.id})`);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "不明なエラーが発生しました";
+			for (const line of message.split("\n")) {
+				new Notice(`送信失敗: ${line}`);
+			}
+			console.error("[funneler-api]", error);
+		}
 	}
 }

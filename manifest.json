@@ -1,11 +1,10 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "funneler-api",
+	"name": "Funneler API",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Send the current Obsidian note as a BroadcastMail draft via the Funneler API.",
+	"author": "ihatov08",
+	"authorUrl": "https://github.com/ihatov08",
 	"isDesktopOnly": false
 }

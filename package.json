@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "funneler-api",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Obsidian plugin to send notes as BroadcastMail drafts via Funneler API",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {

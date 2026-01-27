@@ -10,6 +10,7 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+const isProductionApi = (process.env.FUNNELER_ENV === "production");
 
 const context = await esbuild.context({
 	banner: {
@@ -39,6 +40,9 @@ const context = await esbuild.context({
 	treeShaking: true,
 	outfile: "main.js",
 	minify: prod,
+	define: {
+		"IS_PRODUCTION": JSON.stringify(isProductionApi),
+	},
 });
 
 if (prod) {
