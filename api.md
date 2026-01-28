@@ -5,14 +5,14 @@
 全てのリクエストに `Authorization` ヘッダーで Bearer トークンが必要。
 
 ```
-Authorization: Bearer <api_token>
+Authorization: Bearer <api_key>
 ```
 
-トークンはダッシュボードの設定画面（設定 > APIトークン）から生成する。
+APIキーはダッシュボードの設定画面（設定 > APIキー）から生成する。APIキーは機密情報のため、漏洩しないよう厳重に管理すること。
 
 ## エンドポイント
 
-### POST /dashboard/api/broadcast_mails
+### POST /broadcast_mails
 
 BroadcastMail を下書きとして作成する。
 
@@ -25,7 +25,7 @@ BroadcastMail を下書きとして作成する。
 | `subject` | string | Yes | メール件名 |
 | `content` | string | Yes | Markdown テキスト（標準 markdown + Obsidian `![[file]]` 記法対応） |
 | `images[]` | file | No | content 内で参照する画像ファイル（複数可） |
-| `tenant_email_id` | integer | No | 送信元メール ID。未指定時はテナントのデフォルトメール |
+| `tenant_email_id` | integer | Yes | 送信元メール ID |
 | `tag_ids[]` | integer | No | 配信対象のタグ ID |
 | `scheduled_at` | datetime | No | 配信日時（ISO 8601 形式）。未指定時は1年後 |
 
@@ -49,7 +49,8 @@ Markdown 内の画像ファイル名とアップロードするファイル名�
 ```json
 {
   "id": 123,
-  "status": "draft"
+  "status": "draft",
+  "url": "http://dashboard.lvh.me:3002/dashboard/broadcast_mails/123"
 }
 ```
 
@@ -70,7 +71,7 @@ Markdown 内の画像ファイル名とアップロードするファイル名�
 #### 例
 
 ```bash
-curl -X POST https://dashboard.example.com/dashboard/api/broadcast_mails \
+curl -X POST https://api.funnelerapp.com/broadcast_mails \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -F "subject=ニュースレターのタイトル" \
   -F "content=# 見出し
@@ -78,5 +79,6 @@ curl -X POST https://dashboard.example.com/dashboard/api/broadcast_mails \
 テキスト ![[photo.png]]
 
 続きの内容" \
+  -F "tenant_email_id=1" \
   -F "images[]=@/path/to/photo.png"
 ```
