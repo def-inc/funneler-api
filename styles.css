@@ -1,8 +1,17 @@
-/*
+.funneler-panel-title {
+	margin: 0 0 8px 0;
+	padding: 0 0 4px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+	font-size: var(--font-ui-medium);
+	color: var(--text-normal);
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.funneler-panel-empty {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
 
-If your plugin does not need CSS, delete this file.
-
-*/
+.funneler-panel-error {
+	color: var(--text-error);
+	font-size: var(--font-ui-small);
+}

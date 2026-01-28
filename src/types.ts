@@ -33,3 +33,16 @@ export interface BroadcastMailResponse {
 export interface BroadcastMailErrorResponse {
 	errors: string[];
 }
+
+export interface SelectOption {
+	value: string;
+	label: string;
+}
+
+export interface TenantEmail {
+	id: number;
+	email: string;
+	sender_name: string;
+	default: boolean;
+	display_name: string;
+}
