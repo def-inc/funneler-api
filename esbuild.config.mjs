@@ -1,6 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import { builtinModules } from 'node:module';
+import { cpSync, mkdirSync } from 'node:fs';
 
 const banner =
 `/*
@@ -10,9 +11,10 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
-const isProductionApi = (process.env.FUNNELER_ENV === "production");
 
-const context = await esbuild.context({
+const devOutDir = "../funneler-api-dev";
+
+const sharedOptions = {
 	banner: {
 		js: banner,
 	},
@@ -36,18 +38,41 @@ const context = await esbuild.context({
 	format: "cjs",
 	target: "es2018",
 	logLevel: "info",
-	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	outfile: "main.js",
-	minify: prod,
-	define: {
-		"IS_PRODUCTION": JSON.stringify(isProductionApi),
-	},
-});
+};
 
 if (prod) {
+	const context = await esbuild.context({
+		...sharedOptions,
+		outfile: "main.js",
+		sourcemap: false,
+		minify: true,
+		define: { "IS_PRODUCTION": "true" },
+	});
 	await context.rebuild();
 	process.exit(0);
 } else {
-	await context.watch();
+	// Build production main.js for funneler-api
+	const prodContext = await esbuild.context({
+		...sharedOptions,
+		outfile: "main.js",
+		sourcemap: false,
+		minify: true,
+		define: { "IS_PRODUCTION": "true" },
+	});
+	await prodContext.rebuild();
+	prodContext.dispose();
+
+	// Watch dev build for funneler-api-dev
+	mkdirSync(devOutDir, { recursive: true });
+	cpSync("manifest-dev.json", `${devOutDir}/manifest.json`);
+
+	const devContext = await esbuild.context({
+		...sharedOptions,
+		outfile: `${devOutDir}/main.js`,
+		sourcemap: "inline",
+		minify: false,
+		define: { "IS_PRODUCTION": "false" },
+	});
+	await devContext.watch();
 }

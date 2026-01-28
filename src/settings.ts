@@ -37,7 +37,7 @@ export class FunnelerApiSettingTab extends PluginSettingTab {
 			.setDesc("Bearer token for the broadcast mail API")
 			.addText((text) => {
 				text.inputEl.type = "password";
-				text.setPlaceholder("トークンを入力")
+				text.setPlaceholder("ファネラーのAPIキーを入力")
 					.setValue(this.plugin.settings.apiToken)
 					.onChange(async (value: string) => {
 						this.plugin.settings.apiToken = value;
