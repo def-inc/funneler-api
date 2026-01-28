@@ -27,6 +27,19 @@ export default class FunnelerApiPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: "insert-broadcast-template",
+			name: "Insert broadcast mail template",
+			checkCallback: (checking: boolean) => {
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (!view?.file) return false;
+				if (!checking) {
+					void this.insertBroadcastTemplate(view);
+				}
+				return true;
+			},
+		});
+
+		this.addCommand({
 			id: "send-as-broadcast-mail",
 			name: "Send current note as broadcast mail",
 			checkCallback: (checking: boolean) => {
@@ -48,6 +61,39 @@ export default class FunnelerApiPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	private async insertBroadcastTemplate(view: MarkdownView) {
+		const file = view.file;
+		if (!file) {
+			new Notice("アクティブなファイルがありません。");
+			return;
+		}
+
+		const cache = this.app.metadataCache.getFileCache(file);
+		if (cache?.frontmatter) {
+			new Notice("このファイルには既にfrontmatterが存在します。");
+			return;
+		}
+
+		const existingContent = (await this.app.vault.read(file)).trim();
+
+		const scheduledAt = new Date(Date.now() + 60 * 60 * 1000);
+		const scheduledAtStr = scheduledAt.toISOString().slice(0, 16);
+
+		await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+			fm["subject"] = "";
+			fm["tenant_email_id"] = "";
+			fm["scheduled_at"] = scheduledAtStr;
+			fm["status"] = "draft";
+		});
+
+		if (!existingContent) {
+			const bodyText = "\n<!-- tenant_email_id と status は Ctrl+P → \"Edit frontmatter selects\" で設定できます -->\n";
+			await this.app.vault.append(file, bodyText);
+		}
+
+		new Notice("Broadcast mail テンプレートを挿入しました。");
 	}
 
 	private async sendCurrentNote(view: MarkdownView) {
