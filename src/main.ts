@@ -5,7 +5,7 @@ import type {BroadcastFrontmatter} from "./types";
 import {parseImageReferences} from "./utils/image-parser";
 import {resolveImages} from "./utils/image-resolver";
 import {sendBroadcastMail, updateBroadcastMail} from "./api/client";
-import {FrontmatterSelectView, VIEW_TYPE_FRONTMATTER_SELECT} from "./ui/select-panel-view";
+import {FrontmatterSelectModal} from "./ui/frontmatter-select-modal";
 
 export default class FunnelerApiPlugin extends Plugin {
 	settings: FunnelerApiSettings;
@@ -13,34 +13,18 @@ export default class FunnelerApiPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// Deregister stale view type left by previous hot-reload
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access -- no public API to deregister a view type
-		const viewRegistry = (this.app as any).viewRegistry as { viewByType: Record<string, unknown> } | undefined;
-		if (viewRegistry?.viewByType[VIEW_TYPE_FRONTMATTER_SELECT]) {
-			delete viewRegistry.viewByType[VIEW_TYPE_FRONTMATTER_SELECT];
-		}
-
-		this.registerView(
-			VIEW_TYPE_FRONTMATTER_SELECT,
-			(leaf) => new FrontmatterSelectView(leaf, this),
-		);
-
-		this.addRibbonIcon("list", "Frontmatter select", () => {
-			void this.activateSelectPanel();
-		});
-
-		this.registerEvent(
-			this.app.workspace.on("active-leaf-change", (leaf) => {
-				if (!(leaf?.view instanceof MarkdownView) || !leaf.view.file) return;
-				const file = leaf.view.file;
-				const panels = this.app.workspace.getLeavesOfType(VIEW_TYPE_FRONTMATTER_SELECT);
-				for (const panelLeaf of panels) {
-					if (panelLeaf.view instanceof FrontmatterSelectView) {
-						void panelLeaf.view.refresh(file);
-					}
+		this.addCommand({
+			id: "edit-frontmatter-selects",
+			name: "Edit frontmatter selects",
+			checkCallback: (checking: boolean) => {
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (!view?.file) return false;
+				if (!checking) {
+					new FrontmatterSelectModal(this.app, view.file, this).open();
 				}
-			}),
-		);
+				return true;
+			},
+		});
 
 		this.addCommand({
 			id: "send-as-broadcast-mail",
@@ -56,36 +40,6 @@ export default class FunnelerApiPlugin extends Plugin {
 		});
 
 		this.addSettingTab(new FunnelerApiSettingTab(this.app, this));
-	}
-
-	private async activateSelectPanel(): Promise<void> {
-		// Remember the current markdown file before the panel takes focus
-		const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
-		const currentFile = mdView?.file ?? null;
-
-		const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_FRONTMATTER_SELECT);
-		const first = existing[0];
-		if (first) {
-			void this.app.workspace.revealLeaf(first);
-			if (currentFile && first.view instanceof FrontmatterSelectView) {
-				void first.view.refresh(currentFile);
-			}
-			return;
-		}
-
-		const leaf = this.app.workspace.getRightLeaf(false);
-		if (!leaf) return;
-
-		await leaf.setViewState({
-			type: VIEW_TYPE_FRONTMATTER_SELECT,
-			active: true,
-		});
-		void this.app.workspace.revealLeaf(leaf);
-
-		// Pass the file to the newly created panel
-		if (currentFile && leaf.view instanceof FrontmatterSelectView) {
-			void leaf.view.refresh(currentFile);
-		}
 	}
 
 	async loadSettings() {

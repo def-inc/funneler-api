@@ -1,64 +1,47 @@
-import {ItemView, MarkdownView, Setting, TFile, WorkspaceLeaf} from "obsidian";
+import {App, Modal, Notice, Setting, TFile} from "obsidian";
 import type FunnelerApiPlugin from "../main";
-import {fetchTenantEmails} from "../api/options-client";
+import {clearTenantEmailsCache, fetchTenantEmails} from "../api/options-client";
 import type {BroadcastFrontmatter} from "../types";
 
-export const VIEW_TYPE_FRONTMATTER_SELECT = "funneler-frontmatter-select";
-
-export class FrontmatterSelectView extends ItemView {
+export class FrontmatterSelectModal extends Modal {
+	private file: TFile;
 	private plugin: FunnelerApiPlugin;
-	private currentFile: TFile | null = null;
 
-	constructor(leaf: WorkspaceLeaf, plugin: FunnelerApiPlugin) {
-		super(leaf);
+	constructor(app: App, file: TFile, plugin: FunnelerApiPlugin) {
+		super(app);
+		this.file = file;
 		this.plugin = plugin;
 	}
 
-	getViewType(): string {
-		return VIEW_TYPE_FRONTMATTER_SELECT;
-	}
-
-	getDisplayText(): string {
-		return "Frontmatter select";
-	}
-
-	getIcon(): string {
-		return "list";
-	}
-
-	async onOpen(): Promise<void> {
-		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		this.currentFile = view?.file ?? null;
-		await this.render();
-	}
-
-	async refresh(file: TFile): Promise<void> {
-		this.currentFile = file;
-		await this.render();
+	onOpen(): void {
+		void this.render();
 	}
 
 	private async render(): Promise<void> {
 		const {contentEl} = this;
 		contentEl.empty();
 
-		const file = this.currentFile;
-		if (!file) {
-			contentEl.createEl("p", {text: "マークダウンファイルを開いてください。", cls: "funneler-panel-empty"});
-			return;
-		}
+		contentEl.createEl("h3", {text: this.file.basename});
+		const loadingEl = contentEl.createEl("p", {text: "Loading..."});
 
-		const cache = this.app.metadataCache.getFileCache(file);
+		// Clear cache to fetch latest options from API
+		clearTenantEmailsCache();
+
+		const cache = this.app.metadataCache.getFileCache(this.file);
 		const fm = (cache?.frontmatter ?? {}) as BroadcastFrontmatter;
 
-		contentEl.createEl("h4", {text: file.basename, cls: "funneler-panel-title"});
+		await this.renderTenantEmailSelect(contentEl, fm);
+		this.renderStatusSelect(contentEl, fm);
 
-		await this.renderTenantEmailSelect(contentEl, file, fm);
-		this.renderStatusSelect(contentEl, file, fm);
+		loadingEl.remove();
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
 	}
 
 	private async renderTenantEmailSelect(
 		containerEl: HTMLElement,
-		file: TFile,
 		fm: BroadcastFrontmatter,
 	): Promise<void> {
 		let options: { value: string; label: string }[];
@@ -66,7 +49,7 @@ export class FrontmatterSelectView extends ItemView {
 			options = await fetchTenantEmails(this.plugin.settings);
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : "取得エラー";
-			containerEl.createEl("p", {text: `tenant_email_id: ${msg}`, cls: "funneler-panel-error"});
+			new Notice(`tenant_email_id: ${msg}`);
 			return;
 		}
 
@@ -82,7 +65,7 @@ export class FrontmatterSelectView extends ItemView {
 				dropdown.setValue(currentValue);
 				dropdown.onChange(async (value: string) => {
 					const numValue = value ? Number(value) : undefined;
-					await this.app.fileManager.processFrontMatter(file, (fmData: Record<string, unknown>) => {
+					await this.app.fileManager.processFrontMatter(this.file, (fmData: Record<string, unknown>) => {
 						if (numValue != null) {
 							fmData["tenant_email_id"] = numValue;
 						} else {
@@ -95,7 +78,6 @@ export class FrontmatterSelectView extends ItemView {
 
 	private renderStatusSelect(
 		containerEl: HTMLElement,
-		file: TFile,
 		fm: BroadcastFrontmatter,
 	): void {
 		const currentValue = fm.status ?? "";
@@ -108,7 +90,7 @@ export class FrontmatterSelectView extends ItemView {
 				dropdown.addOption("send", "Send");
 				dropdown.setValue(currentValue);
 				dropdown.onChange(async (value: string) => {
-					await this.app.fileManager.processFrontMatter(file, (fmData: Record<string, unknown>) => {
+					await this.app.fileManager.processFrontMatter(this.file, (fmData: Record<string, unknown>) => {
 						if (value) {
 							fmData["status"] = value;
 						} else {

@@ -1,17 +1,1 @@
-.funneler-panel-title {
-	margin: 0 0 8px 0;
-	padding: 0 0 4px 0;
-	border-bottom: 1px solid var(--background-modifier-border);
-	font-size: var(--font-ui-medium);
-	color: var(--text-normal);
-}
-
-.funneler-panel-empty {
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
-}
-
-.funneler-panel-error {
-	color: var(--text-error);
-	font-size: var(--font-ui-small);
-}
+/* Modal uses Obsidian's standard Modal styles */

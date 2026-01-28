@@ -46,6 +46,10 @@ function getJson(url: string, token: string): Promise<unknown> {
 	});
 }
 
+export function clearTenantEmailsCache(): void {
+	cache.delete("tenant_emails");
+}
+
 export async function fetchTenantEmails(
 	settings: FunnelerApiSettings,
 ): Promise<SelectOption[]> {
@@ -58,8 +62,6 @@ export async function fetchTenantEmails(
 	const hostUrl = getHostUrl();
 	const url = `${hostUrl}/tenant_emails`;
 	const json = await getJson(url, settings.apiToken);
-
-	console.debug("[funneler-api] GET /tenant_emails response:", json);
 
 	const items = json as TenantEmail[];
 	if (!Array.isArray(items)) {
