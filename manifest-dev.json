@@ -1,0 +1,10 @@
+{
+	"id": "funneler-api-dev",
+	"name": "Funneler API (Dev)",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Send the current Obsidian note as a BroadcastMail draft via the Funneler API. (Development)",
+	"author": "ihatov08",
+	"authorUrl": "https://github.com/ihatov08",
+	"isDesktopOnly": false
+}

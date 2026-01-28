@@ -1,6 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import { builtinModules } from 'node:module';
+import { cpSync, mkdirSync } from 'node:fs';
 
 const banner =
 `/*
@@ -10,7 +11,13 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
-const isProductionApi = (process.env.FUNNELER_ENV === "production");
+
+const devOutDir = "../funneler-api-dev";
+
+if (!prod) {
+	mkdirSync(devOutDir, { recursive: true });
+	cpSync("manifest-dev.json", `${devOutDir}/manifest.json`);
+}
 
 const context = await esbuild.context({
 	banner: {
@@ -38,10 +45,10 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	outfile: "main.js",
+	outfile: prod ? "main.js" : `${devOutDir}/main.js`,
 	minify: prod,
 	define: {
-		"IS_PRODUCTION": JSON.stringify(isProductionApi),
+		"IS_PRODUCTION": JSON.stringify(prod),
 	},
 });
 
