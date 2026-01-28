@@ -5,12 +5,26 @@ import type {BroadcastFrontmatter} from "./types";
 import {parseImageReferences} from "./utils/image-parser";
 import {resolveImages} from "./utils/image-resolver";
 import {sendBroadcastMail, updateBroadcastMail} from "./api/client";
+import {FrontmatterSelectModal} from "./ui/frontmatter-select-modal";
 
 export default class FunnelerApiPlugin extends Plugin {
 	settings: FunnelerApiSettings;
 
 	async onload() {
 		await this.loadSettings();
+
+		this.addCommand({
+			id: "edit-frontmatter-selects",
+			name: "Edit frontmatter selects",
+			checkCallback: (checking: boolean) => {
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (!view?.file) return false;
+				if (!checking) {
+					new FrontmatterSelectModal(this.app, view.file, this).open();
+				}
+				return true;
+			},
+		});
 
 		this.addCommand({
 			id: "send-as-broadcast-mail",
