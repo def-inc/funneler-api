@@ -94,9 +94,8 @@ export default class FunnelerApiPlugin extends Plugin {
 				frontmatter: fm,
 			};
 
-			const existingId = fm.id as number | undefined;
-			const result = existingId
-				? await updateBroadcastMail(existingId, mailParams)
+			const result = typeof fm.id === "number"
+				? await updateBroadcastMail(Number(fm.id), mailParams)
 				: await sendBroadcastMail(mailParams);
 
 			await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
