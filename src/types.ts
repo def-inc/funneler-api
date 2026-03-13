@@ -8,7 +8,7 @@ export interface ResolvedImage {
 	data: ArrayBuffer;
 }
 
-export type BroadcastStatus = "draft" | "send";
+export type BroadcastStatus = "draft" | "queued";
 
 export interface BroadcastFrontmatter {
 	id?: number;
