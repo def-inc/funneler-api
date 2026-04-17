@@ -115,6 +115,7 @@ export async function sendBroadcastMail(
 	const fields: Record<string, string> = {
 		subject: frontmatter.subject as string,
 		content,
+		status: frontmatter.status as string,
 	};
 
 	if (frontmatter.tenant_email_id != null) {
@@ -155,6 +156,7 @@ export async function updateBroadcastMail(
 	const fields: Record<string, string> = {
 		subject: frontmatter.subject as string,
 		content,
+		status: frontmatter.status as string,
 	};
 
 	if (frontmatter.tenant_email_id != null) {

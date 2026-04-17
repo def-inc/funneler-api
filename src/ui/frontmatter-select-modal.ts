@@ -87,7 +87,7 @@ export class FrontmatterSelectModal extends Modal {
 			.addDropdown((dropdown) => {
 				dropdown.addOption("", "-- 選択 --");
 				dropdown.addOption("draft", "Draft");
-				dropdown.addOption("send", "Send");
+				dropdown.addOption("queued", "Queued");
 				dropdown.setValue(currentValue);
 				dropdown.onChange(async (value: string) => {
 					await this.app.fileManager.processFrontMatter(this.file, (fmData: Record<string, unknown>) => {

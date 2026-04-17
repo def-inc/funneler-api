@@ -121,8 +121,8 @@ export default class FunnelerApiPlugin extends Plugin {
 				new Notice(`frontmatter に必須項目がありません: ${missing.join(", ")}`);
 				return;
 			}
-			if (fm.status !== "draft" && fm.status !== "send") {
-				new Notice('Status must be "draft" or "send"');
+			if (fm.status !== "draft" && fm.status !== "queued") {
+				new Notice('Status must be "draft" or "queued"');
 				return;
 			}
 
@@ -165,7 +165,8 @@ export default class FunnelerApiPlugin extends Plugin {
 				fm["updated_at"] = result.updated_at;
 			});
 
-			new Notice(`BroadcastMail 下書きを作成しました (ID: ${result.id})`);
+			const actionLabel = fm.status === "queued" ? "配信予約" : "下書きを作成";
+			new Notice(`BroadcastMail ${actionLabel}しました (ID: ${result.id})`);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "不明なエラーが発生しました";
 			for (const line of message.split("\n")) {

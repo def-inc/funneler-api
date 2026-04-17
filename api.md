@@ -28,6 +28,7 @@ BroadcastMail を下書きとして作成する。
 | `tenant_email_id` | integer | Yes | 送信元メール ID |
 | `tag_ids[]` | integer | No | 配信対象のタグ ID |
 | `scheduled_at` | datetime | No | 配信日時（ISO 8601 形式）。未指定時は1年後 |
+| `status` | string | Yes | ステータス（`draft` または `queued`） |
 
 #### 画像のマッチング
 
@@ -80,5 +81,6 @@ curl -X POST https://api.funnelerapp.com/broadcast_mails \
 
 続きの内容" \
   -F "tenant_email_id=1" \
+  -F "status=draft" \
   -F "images[]=@/path/to/photo.png"
 ```
