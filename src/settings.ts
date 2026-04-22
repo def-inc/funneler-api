@@ -9,8 +9,8 @@ export const DEFAULT_SETTINGS: FunnelerApiSettings = {
 	apiToken: "",
 };
 
-export const PRODUCTION_URL = "https://api.funnelerapp.com";
-export const DEVELOPMENT_URL = "http://api.lvh.me:3002";
+export const PRODUCTION_URL = "https://funnelerapp.com";
+export const DEVELOPMENT_URL = "http://lvh.me:3002";
 
 declare const IS_PRODUCTION: boolean;
 
